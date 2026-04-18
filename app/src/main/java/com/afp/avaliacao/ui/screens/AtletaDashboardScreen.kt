@@ -1,7 +1,5 @@
 package com.afp.avaliacao.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,7 +32,6 @@ import java.util.*
 fun AtletaDashboardScreen(
     onStartCheckIn: () -> Unit,
     onStartCheckOut: () -> Unit,
-    onViewPlano: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit,
     viewModel: AtletaMetricsViewModel = viewModel()
@@ -45,7 +42,6 @@ fun AtletaDashboardScreen(
 
     val hasOpenCheckIn = (uiState.metricsState as? ResultState.Success)?.data?.hasOpenCheckIn ?: false
 
-    // Atualiza as métricas sempre que a tela voltar para o primeiro plano (ON_RESUME)
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -115,11 +111,6 @@ fun AtletaDashboardScreen(
         },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End) {
-                SmallFloatingActionButton(
-                    onClick = onViewPlano,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                ) { Icon(Icons.Default.List, "Ver Plano") }
-                Spacer(modifier = Modifier.height(8.dp))
                 ExtendedFloatingActionButton(
                     onClick = {
                         if (hasOpenCheckIn) {

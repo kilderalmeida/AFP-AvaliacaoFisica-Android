@@ -29,7 +29,6 @@ import java.util.*
 @Composable
 fun CoachMetricsScreen(
     onLogout: () -> Unit,
-    onNavigateToGerarPlano: () -> Unit,
     onNavigateToCadastroAtleta: () -> Unit,
     onNavigateToGerenciarAtletas: () -> Unit,
     onNavigateToCadastroTreinador: () -> Unit,
@@ -71,9 +70,6 @@ fun CoachMetricsScreen(
             }
             IconButton(onClick = onNavigateToCadastroAtleta) {
                 Icon(Icons.Default.PersonAdd, contentDescription = "Cadastrar Atleta")
-            }
-            IconButton(onClick = onNavigateToGerarPlano) {
-                Icon(Icons.Default.Add, contentDescription = "Gerar Plano")
             }
             IconButton(onClick = { showLogoutDialog = true }) {
                 Icon(Icons.Default.Logout, contentDescription = "Sair")

@@ -35,14 +35,15 @@ class CheckOutViewModel(
         _uiState.update { it.copy(loadState = ResultState.Loading) }
         viewModelScope.launch {
             try {
-                val session = repository.getUltimaSessaoHoje()
+                // Agora busca qualquer sessão que não tenha sido finalizada
+                val session = repository.getSessaoAberta()
                 if (session == null) {
-                    _uiState.update { it.copy(loadState = ResultState.Error("Nenhum check-in encontrado para hoje.")) }
+                    _uiState.update { it.copy(loadState = ResultState.Error("Nenhum check-in em aberto encontrado.")) }
                 } else {
                     _uiState.update { it.copy(loadState = ResultState.Success(session), sessionToUpdate = session) }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(loadState = ResultState.Error("Erro técnico: ${e.message}")) }
+                _uiState.update { it.copy(loadState = ResultState.Error("Erro ao carregar treino: ${e.message}")) }
             }
         }
     }

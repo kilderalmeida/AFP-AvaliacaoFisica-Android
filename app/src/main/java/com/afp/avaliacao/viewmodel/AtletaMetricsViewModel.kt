@@ -24,10 +24,12 @@ class AtletaMetricsViewModel(
     val uiState: StateFlow<MetricsUiState> = _uiState.asStateFlow()
 
     private val firestore = FirebaseFirestore.getInstance()
+    private var lastFetchTime: Long = 0
+    private val CACHE_TIMEOUT = 5 * 60 * 1000 // 5 minutos em milisegundos
 
     init {
         carregarNome()
-        carregarMetricas()
+        carregarMetricas(forceRefresh = true)
     }
 
     private fun carregarNome() {
@@ -47,18 +49,27 @@ class AtletaMetricsViewModel(
 
     fun onDiasSelected(dias: Int) {
         _uiState.update { it.copy(diasSelecionados = dias) }
-        carregarMetricas()
+        carregarMetricas(forceRefresh = true)
     }
 
-    fun carregarMetricas() {
+    fun carregarMetricas(forceRefresh: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!forceRefresh && (now - lastFetchTime) < CACHE_TIMEOUT && _uiState.value.metricsState is ResultState.Success) {
+            return // Usa o cache da memória se for recente
+        }
+
         val uid = auth.currentUser?.uid ?: return
         val dias = _uiState.value.diasSelecionados
 
-        _uiState.update { it.copy(metricsState = ResultState.Loading) }
+        // Só mostra "Loading" se não tivermos dados nenhuns ainda
+        if (_uiState.value.metricsState !is ResultState.Success) {
+            _uiState.update { it.copy(metricsState = ResultState.Loading) }
+        }
 
         viewModelScope.launch {
             try {
                 val sessoes = repository.getSessoesTreino(uid, dias)
+                lastFetchTime = System.currentTimeMillis()
                 
                 if (sessoes.isEmpty()) {
                     _uiState.update { it.copy(metricsState = ResultState.Success(
@@ -105,7 +116,10 @@ class AtletaMetricsViewModel(
 
                 _uiState.update { it.copy(metricsState = ResultState.Success(processed)) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(metricsState = ResultState.Error(e.message ?: "Erro desconhecido")) }
+                // Se der erro mas já tivermos dados, não substituímos por erro, apenas ignoramos a atualização silenciosa
+                if (_uiState.value.metricsState !is ResultState.Success) {
+                    _uiState.update { it.copy(metricsState = ResultState.Error(e.message ?: "Erro desconhecido")) }
+                }
             }
         }
     }

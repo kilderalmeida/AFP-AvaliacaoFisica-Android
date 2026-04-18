@@ -25,19 +25,8 @@ android {
         }
     }
 
-    signingConfigs {
-        val keystorePath = project.findProperty("RELEASE_STORE_FILE")?.toString() ?: "keystore.jks"
-        val keystoreFile = file(keystorePath)
-        
-        if (keystoreFile.exists()) {
-            create("release") {
-                storeFile = keystoreFile
-                storePassword = project.findProperty("RELEASE_STORE_PASSWORD")?.toString() ?: ""
-                keyAlias = project.findProperty("RELEASE_KEY_ALIAS")?.toString() ?: ""
-                keyPassword = project.findProperty("RELEASE_KEY_PASSWORD")?.toString() ?: ""
-            }
-        }
-    }
+    // Removemos qualquer bloco customizado de signingConfigs para deixar o IDE gerenciar
+    // Se você precisar de assinatura automática via CI/CD, as propriedades devem ser definidas aqui futuramente.
 
     buildTypes {
         release {
@@ -45,17 +34,10 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             
-            // Only apply release signing if it was successfully configured
-            if (signingConfigs.findByName("release") != null) {
-                signingConfig = signingConfigs.getByName("release")
-            } else {
-                signingConfig = signingConfigs.getByName("debug")
-            }
-            
+            // O Android Studio injetará a assinatura automaticamente ao usar "Generate Signed APK"
             manifestPlaceholders["crashlyticsEnabled"] = true
         }
         debug {
-            signingConfig = signingConfigs.getByName("debug")
             versionNameSuffix = "-debug"
         }
     }

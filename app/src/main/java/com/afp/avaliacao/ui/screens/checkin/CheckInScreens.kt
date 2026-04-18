@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -15,15 +16,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.afp.avaliacao.ui.components.common.AppScaffold
-import com.afp.avaliacao.ui.components.common.ErrorStateView
 import com.afp.avaliacao.ui.components.common.LoadingView
 import com.afp.avaliacao.util.ResultState
 import com.afp.avaliacao.viewmodel.CheckInViewModel
@@ -79,7 +79,7 @@ fun CheckInFlow(
                     2 -> StepVFC(uiState.vfc) { viewModel.onVfcChange(it) }
                     3 -> StepBemEstar(uiState.bemEstar) { item, v -> viewModel.onBemEstarChange(item, v) }
                     4 -> StepRecuperacao(uiState.recuperacao) { viewModel.onRecuperacaoChange(it) }
-                    5 -> StepDorRegioes(uiState.dorRegioes) { viewModel.toggleDorRegiao(it) }
+                    5 -> StepDorRegioes(uiState.dorRegioes, onToggle = { viewModel.toggleDorRegiao(it) }, onClear = { viewModel.onDorRegioesChange(emptyList()) })
                     6 -> StepHidratacao(uiState.hidratacao) { viewModel.onHidratacaoChange(it) }
                 }
             }
@@ -164,28 +164,28 @@ fun StepRecuperacao(selecionada: String, onUpdate: (String) -> Unit) {
 }
 
 @Composable
-fun StepDorRegioes(selecionadas: List<String>, onToggle: (String) -> Unit) {
-    val regioes = listOf(
-        "Cabeça", "Pescoço", "Ombro D", "Ombro E", "Peito", "Costas",
-        "Braço D", "Braço E", "Mão D", "Mão E", "Abdomen", "Lombar",
-        "Quadril", "Glúteo", "Coxa D", "Coxa E", "Joelho D", "Joelho E",
-        "Canela D", "Canela E", "Pé D", "Pé E"
-    )
-    Text("Sente dor em alguma região?", style = MaterialTheme.typography.titleLarge)
-    Spacer(modifier = Modifier.height(16.dp))
-    LazyVerticalGrid(columns = GridCells.Fixed(3), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(regioes) { regiao ->
-            Surface(
-                onClick = { onToggle(regiao) },
-                color = if (selecionadas.contains(regiao)) Color.Red.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.small,
-                border = if (selecionadas.contains(regiao)) androidx.compose.foundation.BorderStroke(1.dp, Color.Red) else null
-            ) {
-                Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
-                    Text(regiao, fontSize = 10.sp, maxLines = 1)
-                }
+fun StepDorRegioes(
+    selecionadas: List<String>,
+    onToggle: (String) -> Unit,
+    onClear: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Mapa de Dor Muscular", style = MaterialTheme.typography.titleLarge)
+            TextButton(onClick = onClear) {
+                Text("Limpar", color = MaterialTheme.colorScheme.error)
             }
         }
+        
+        BodyPainMap(
+            selectedRegions = selecionadas,
+            onToggle = onToggle,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -204,26 +204,34 @@ fun StepHidratacao(hidratacao: Int, onUpdate: (Int) -> Unit) {
                 val level = index + 1
                 Box(
                     modifier = Modifier
-                        .size(35.dp)
-                        .background(cor, shape = MaterialTheme.shapes.small)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(cor)
                         .clickable { onUpdate(level) }
                         .padding(2.dp)
                 ) {
                     if (hidratacao == level) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.Black)
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.align(Alignment.Center))
                     }
                 }
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = when(hidratacao) {
-                in 1..3 -> "Ótima Hidratação"
-                in 4..5 -> "Beba um pouco mais de água"
-                else -> "ALERTA: Desidratação!"
-            },
-            color = if (hidratacao > 5) Color.Red else Color.DarkGray,
-            fontWeight = FontWeight.Bold
-        )
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = if (hidratacao > 5) Color.Red.copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.05f)
+            )
+        ) {
+            Text(
+                text = when(hidratacao) {
+                    in 1..3 -> "Ótima Hidratação"
+                    in 4..5 -> "Beba um pouco mais de água"
+                    else -> "ALERTA: Desidratação!"
+                },
+                modifier = Modifier.padding(16.dp),
+                color = if (hidratacao > 5) Color.Red else Color.DarkGray,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }

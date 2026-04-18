@@ -69,6 +69,10 @@ class CheckInViewModel(
         _uiState.update { it.copy(dorRegioes = current) }
     }
 
+    fun onDorRegioesChange(dorRegioes: List<String>) {
+        _uiState.update { it.copy(dorRegioes = dorRegioes) }
+    }
+
     fun onHidratacaoChange(hidratacao: Int) {
         _uiState.update { it.copy(hidratacao = hidratacao) }
     }

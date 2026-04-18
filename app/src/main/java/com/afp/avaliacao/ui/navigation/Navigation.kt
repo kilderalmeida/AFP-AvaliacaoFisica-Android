@@ -13,8 +13,6 @@ import com.afp.avaliacao.ui.screens.coach.CoachMetricsScreen
 import com.afp.avaliacao.ui.screens.coach.CadastroAtletaScreen
 import com.afp.avaliacao.ui.screens.coach.GerenciarAtletasScreen
 import com.afp.avaliacao.ui.screens.coach.CadastroTreinadorScreen
-import com.afp.avaliacao.ui.screens.plano.AtletaPlanoScreen
-import com.afp.avaliacao.ui.screens.plano.CoachPlanoScreen
 import com.afp.avaliacao.ui.screens.settings.SettingsScreen
 import com.google.firebase.auth.FirebaseAuth
 
@@ -24,8 +22,6 @@ sealed class Screen(val route: String) {
     object CoachMetrics : Screen("coachMetrics")
     object CheckIn : Screen("checkin")
     object CheckOut : Screen("checkout")
-    object CoachPlano : Screen("coachPlano")
-    object AtletaPlano : Screen("atletaPlano")
     object Settings : Screen("settings")
     object CadastroAtleta : Screen("cadastroAtleta")
     object GerenciarAtletas : Screen("gerenciarAtletas")
@@ -66,7 +62,6 @@ fun AppNavigation(
                     auth.signOut()
                     navController.navigate(Screen.Login.route) { popUpTo(0) }
                 },
-                onNavigateToGerarPlano = { navController.navigate(Screen.CoachPlano.route) },
                 onNavigateToCadastroAtleta = { navController.navigate(Screen.CadastroAtleta.route) },
                 onNavigateToGerenciarAtletas = { navController.navigate(Screen.GerenciarAtletas.route) },
                 onNavigateToCadastroTreinador = { navController.navigate(Screen.CadastroTreinador.route) }
@@ -85,25 +80,16 @@ fun AppNavigation(
             CadastroTreinadorScreen(onBack = { navController.popBackStack() })
         }
 
-        composable(Screen.CoachPlano.route) {
-            CoachPlanoScreen(onBack = { navController.popBackStack() })
-        }
-
         composable(Screen.AtletaDashboard.route) { 
             AtletaDashboardScreen(
                 onStartCheckIn = { navController.navigate(Screen.CheckIn.route) },
                 onStartCheckOut = { navController.navigate(Screen.CheckOut.route) },
-                onViewPlano = { navController.navigate(Screen.AtletaPlano.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onLogout = {
                     auth.signOut()
                     navController.navigate(Screen.Login.route) { popUpTo(0) }
                 }
             ) 
-        }
-
-        composable(Screen.AtletaPlano.route) {
-            AtletaPlanoScreen()
         }
 
         composable(Screen.CheckIn.route) {
