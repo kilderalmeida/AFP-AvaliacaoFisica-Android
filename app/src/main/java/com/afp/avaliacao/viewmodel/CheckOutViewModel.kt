@@ -73,11 +73,11 @@ class CheckOutViewModel(
     }
 
     private fun finalizarCheckOut() {
-        val duracao = _uiState.value.duracaoMin.toIntOrNull() ?: 50
+        val duracao = _uiState.value.duracaoMin.toIntOrNull()
         val sessionId = _uiState.value.sessionToUpdate?.id ?: return
 
-        if (duracao < 1 || duracao > 180) {
-            _uiState.update { it.copy(saveState = ResultState.Error("Duração deve ser entre 1 e 180 min")) }
+        if (duracao == null || duracao < 1) {
+            _uiState.update { it.copy(saveState = ResultState.Error("Por favor, informe uma duração válida.")) }
             return
         }
 
