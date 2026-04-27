@@ -12,13 +12,19 @@ data class Atleta(
     val nome: String, 
     val email: String = "", 
     val ativo: Boolean = true,
-    val coachId: String = ""
+    val coachId: String = "",
+    val treinadorId: String? = null,
+    val coachNome: String? = null,
+    val coachEmail: String? = null,
+    val treinadorNome: String? = null,
+    val treinadorEmail: String? = null
 )
 
 data class Treinador(
     val id: String,
     val nome: String,
-    val email: String = ""
+    val email: String = "",
+    val coachId: String = ""
 )
 
 class MetricsRepository(
@@ -28,21 +34,36 @@ class MetricsRepository(
     suspend fun getMeusAtletas(): List<Atleta> {
         val uid = auth.currentUser?.uid ?: return emptyList()
         return try {
-            val snapshot = firestore.collection("users")
-                .whereEqualTo("coachId", uid)
+            val asCoach = firestore.collection("users")
+                .whereEqualTo("coach_id", uid)
                 .whereEqualTo("papel", "atleta")
                 .get()
                 .await()
-            snapshot.documents.map { doc ->
+            
+            val asTreinador = firestore.collection("users")
+                .whereEqualTo("treinador_id", uid)
+                .whereEqualTo("papel", "atleta")
+                .get()
+                .await()
+
+            val allDocs = (asCoach.documents + asTreinador.documents).distinctBy { it.id }
+
+            allDocs.map { doc ->
                 Atleta(
                     id = doc.id,
                     nome = doc.getString("nome") ?: "Atleta Desconhecido",
                     email = doc.getString("email") ?: "",
                     ativo = doc.getBoolean("ativo") ?: true,
-                    coachId = doc.getString("coachId") ?: ""
+                    coachId = doc.getString("coach_id") ?: "",
+                    treinadorId = doc.getString("treinador_id"),
+                    coachNome = doc.getString("coach_nome"),
+                    coachEmail = doc.getString("coach_email"),
+                    treinadorNome = doc.getString("treinador_nome"),
+                    treinadorEmail = doc.getString("treinador_email")
                 )
             }
         } catch (e: Exception) {
+            Log.e("MetricsRepository", "Erro ao buscar atletas", e)
             emptyList()
         }
     }
@@ -59,7 +80,12 @@ class MetricsRepository(
                     nome = doc.getString("nome") ?: "Atleta Desconhecido",
                     email = doc.getString("email") ?: "",
                     ativo = doc.getBoolean("ativo") ?: true,
-                    coachId = doc.getString("coachId") ?: ""
+                    coachId = doc.getString("coach_id") ?: "",
+                    treinadorId = doc.getString("treinador_id"),
+                    coachNome = doc.getString("coach_nome"),
+                    coachEmail = doc.getString("coach_email"),
+                    treinadorNome = doc.getString("treinador_nome"),
+                    treinadorEmail = doc.getString("treinador_email")
                 )
             }
         } catch (e: Exception) {
@@ -68,8 +94,10 @@ class MetricsRepository(
     }
 
     suspend fun getTreinadores(): List<Treinador> {
+        val uid = auth.currentUser?.uid ?: return emptyList()
         return try {
             val snapshot = firestore.collection("users")
+                .whereEqualTo("coach_id", uid)
                 .whereEqualTo("papel", "treinador")
                 .get()
                 .await()
@@ -77,7 +105,8 @@ class MetricsRepository(
                 Treinador(
                     id = doc.id,
                     nome = doc.getString("nome") ?: "Treinador Desconhecido",
-                    email = doc.getString("email") ?: ""
+                    email = doc.getString("email") ?: "",
+                    coachId = doc.getString("coach_id") ?: ""
                 )
             }
         } catch (e: Exception) {
@@ -86,13 +115,18 @@ class MetricsRepository(
     }
 
     suspend fun cadastrarTreinador(nome: String, email: String): Result<Unit> {
-        val ownerId = auth.currentUser?.uid ?: return Result.failure(Exception("Não autorizado"))
+        val coachUid = auth.currentUser?.uid ?: return Result.failure(Exception("Não autorizado"))
         return try {
+            val coachName = auth.currentUser?.displayName ?: "Coach"
+            val coachEmail = auth.currentUser?.email ?: ""
+
             val novoTreinador = hashMapOf(
                 "nome" to nome,
                 "email" to email,
                 "papel" to "treinador",
-                "ownerId" to ownerId,
+                "coach_id" to coachUid,
+                "coach_nome" to coachName,
+                "coach_email" to coachEmail,
                 "limiteAtletas" to 5,
                 "dataCadastro" to com.google.firebase.Timestamp.now()
             )
@@ -114,8 +148,11 @@ class MetricsRepository(
     }
 
     suspend fun cadastrarAtleta(nome: String, email: String): Result<Unit> {
-        val coachId = auth.currentUser?.uid ?: return Result.failure(Exception("Não logado"))
+        val currentUid = auth.currentUser?.uid ?: return Result.failure(Exception("Não logado"))
         return try {
+            val coachName = auth.currentUser?.displayName ?: "Coach"
+            val coachEmail = auth.currentUser?.email ?: ""
+            
             val limite = getCoachLimit()
             val atletasAtuais = getMeusAtletas().count { it.ativo }
             
@@ -127,7 +164,9 @@ class MetricsRepository(
                 "nome" to nome,
                 "email" to email,
                 "papel" to "atleta",
-                "coachId" to coachId,
+                "coach_id" to currentUid,
+                "coach_nome" to coachName,
+                "coach_email" to coachEmail,
                 "ativo" to true,
                 "dataCadastro" to com.google.firebase.Timestamp.now()
             )

@@ -1,5 +1,6 @@
 package com.afp.avaliacao.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.afp.avaliacao.data.Atleta
@@ -85,17 +86,47 @@ class MetricsViewModel(
     fun carregarAtletas() {
         viewModelScope.launch {
             try {
-                val filter = _uiState.value.treinadorSelecionadoId
+                val filterId = _uiState.value.treinadorSelecionadoId
                 val role = _uiState.value.userRole
+                val treinadorNome = _uiState.value.treinadores.find { it.id == filterId }?.nome ?: "N/A"
                 
+                Log.d("MetricsDebug", "--- Carregando Atletas ---")
+                Log.d("MetricsDebug", "Treinador Selecionado ID: $filterId")
+                Log.d("MetricsDebug", "Treinador Selecionado Nome: $treinadorNome")
+                Log.d("MetricsDebug", "User Role: $role")
+
                 val listaFiltrada = if (role != "coach" && role != "admin") {
-                    repository.getMeusAtletas()
+                    val meus = repository.getMeusAtletas()
+                    Log.d("MetricsDebug", "Busca direta (meus atletas). Retornados: ${meus.size}")
+                    meus
                 } else {
                     val listaCompleta = repository.getTodosAtletasDoSistema()
-                    when (filter) {
-                        "todos" -> listaCompleta
-                        "meus" -> repository.getMeusAtletas()
-                        else -> listaCompleta.filter { it.coachId == filter }
+                    Log.d("MetricsDebug", "Lista completa do sistema carregada: ${listaCompleta.size} atletas")
+                    
+                    when (filterId) {
+                        "todos" -> {
+                            Log.d("MetricsDebug", "Filtro 'todos' aplicado")
+                            listaCompleta
+                        }
+                        "meus" -> {
+                            val meus = repository.getMeusAtletas()
+                            Log.d("MetricsDebug", "Filtro 'meus' aplicado. Retornados: ${meus.size}")
+                            meus
+                        }
+                        else -> {
+                            // Filtro por ID de treinador específico
+                            val filtrada = listaCompleta.filter { it.treinadorId == filterId }
+                            Log.d("MetricsDebug", "Filtro por treinador específico. Valor usado na query (filterId): $filterId")
+                            Log.d("MetricsDebug", "Quantidade de atletas retornados após filtro: ${filtrada.size}")
+                            
+                            // Debug de cada atleta para ver o que tem no campo treinadorId
+                            listaCompleta.forEach { atleta ->
+                                if (atleta.nome.contains("Kilder", ignoreCase = true)) {
+                                    Log.d("MetricsDebug", "Debug Atleta Kilder -> Nome: ${atleta.nome}, treinadorId: ${atleta.treinadorId}")
+                                }
+                            }
+                            filtrada
+                        }
                     }
                 }
 
@@ -109,6 +140,7 @@ class MetricsViewModel(
                     }
                 }
             } catch (e: Exception) {
+                Log.e("MetricsDebug", "Erro ao carregar atletas", e)
                 _uiState.update { it.copy(metricsState = ResultState.Error("Erro ao carregar atletas: ${e.message}")) }
             }
         }
